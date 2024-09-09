@@ -1,5 +1,5 @@
 export * from './directives';
-import { Directive, SequenceDirective } from './directives';
+import type { Directive } from './directives';
 import {
   AuthDirective,
   AuthDirectiveV1,
@@ -36,6 +36,7 @@ import {
   SearchableDirectiveV1,
   SqlDirective,
   VersionedDirectiveV1,
+  SequenceDirective,
 } from './directives';
 
 export const AppSyncDirectives: readonly Directive[] = [
