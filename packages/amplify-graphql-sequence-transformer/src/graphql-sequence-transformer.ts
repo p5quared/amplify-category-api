@@ -9,24 +9,13 @@ import {
   TransformerPluginBase,
 } from '@aws-amplify/graphql-transformer-core';
 import {
-  TransformerContextProvider,
-  TransformerResolverProvider,
   TransformerSchemaVisitStepContextProvider,
   TransformerTransformSchemaStepContextProvider,
 } from '@aws-amplify/graphql-transformer-interfaces';
 import { SequenceDirective } from '@aws-amplify/graphql-directives';
-import {
-  DirectiveNode,
-  EnumTypeDefinitionNode,
-  FieldDefinitionNode,
-  InterfaceTypeDefinitionNode,
-  Kind,
-  ObjectTypeDefinitionNode,
-  StringValueNode,
-  TypeNode,
-} from 'graphql';
-import { methodCall, printBlock, qref, raw, ref, str } from 'graphql-mapping-template';
-import { getBaseType, isEnum, isListType, isScalarOrEnum, ModelResourceIDs, toCamelCase } from 'graphql-transformer-common';
+import { DirectiveNode, FieldDefinitionNode, InterfaceTypeDefinitionNode, Kind, ObjectTypeDefinitionNode } from 'graphql';
+import { getBaseType, ModelResourceIDs } from 'graphql-transformer-common';
+import { ERR_ARGC, ERR_NOT_INT, ERR_NOT_MODEL, ERR_NOT_POSTGRES } from './err';
 
 const validateModelDirective = (config: SequenceDirectiveConfiguration): void => {
   const modelDirective = config.object.directives!.find((dir) => dir.name.value === 'model');
@@ -41,7 +30,7 @@ const validateDirectiveArguments = (directive: DirectiveNode): void => {
 
 const validateFieldType = (config: SequenceDirectiveConfiguration): void => {
   const baseTypeName = getBaseType(config.field.type);
-  if (baseTypeName !== Kind.INT) {
+  if (baseTypeName !== 'Int') {
     throw new InvalidDirectiveError(ERR_NOT_INT);
   }
 };

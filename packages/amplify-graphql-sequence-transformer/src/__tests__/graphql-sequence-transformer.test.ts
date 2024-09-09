@@ -1,7 +1,10 @@
 import { ModelTransformer } from '@aws-amplify/graphql-model-transformer';
-import { testTransform } from '@aws-amplify/graphql-transformer-test-utils';
+import { mockSqlDataSourceStrategy, testTransform } from '@aws-amplify/graphql-transformer-test-utils';
+import { parse } from 'graphql';
 import { SequenceTransformer } from '../graphql-sequence-transformer';
-import { ERR_NOT_MODEL } from '../err';
+import { ERR_NOT_INT, ERR_NOT_MODEL, ERR_NOT_POSTGRES } from '../err';
+import { constructDataSourceStrategies, validateModelSchema } from '@aws-amplify/graphql-transformer-core';
+import { PrimaryKeyTransformer } from '@aws-amplify/graphql-index-transformer';
 
 describe('DefaultValueModelTransformer:', () => {
   it('throws if @default is used in a non-@model type', () => {
@@ -17,5 +20,68 @@ describe('DefaultValueModelTransformer:', () => {
         transformers: [new ModelTransformer(), new SequenceTransformer()],
       }),
     ).toThrow(ERR_NOT_MODEL);
+  });
+
+  it.each([
+    { strategy: mockSqlDataSourceStrategy() },
+    // TODO: DTE Mock DynamoDB?
+  ])('throws if @sequence is used on a non Postgres datasource', ({ strategy }) => {
+    const schema = `
+      type CoffeeQueue @model {
+        id: ID! @primaryKey
+        orderNumber: Int! @sequence
+        name: String
+      }`;
+    expect(() => {
+      testTransform({
+        schema: schema,
+        transformers: [new ModelTransformer(), new SequenceTransformer(), new PrimaryKeyTransformer()],
+        dataSourceStrategies: constructDataSourceStrategies(schema, strategy),
+      });
+    }).toThrow(ERR_NOT_POSTGRES);
+  });
+
+  it.each([
+    { typeStr: 'Boolean' },
+    { typeStr: 'AWSJSON' },
+    { typeStr: 'AWSDate' },
+    { typeStr: 'AWSDateTime' },
+    { typeStr: 'AWSTime' },
+    { typeStr: 'AWSTime' },
+    { typeStr: 'AWSURL' },
+    { typeStr: 'AWSPhone' },
+    { typeStr: 'AWSIPAddress' },
+  ])('throws if @sequence is used on non-int types', ({ typeStr }) => {
+    expect(() => {
+      const schema = `
+      type Test @model {
+        id: ID!
+        value: ${typeStr} @sequence
+      }
+    `;
+      testTransform({
+        schema,
+        transformers: [new ModelTransformer(), new SequenceTransformer()],
+      });
+    }).toThrow(ERR_NOT_INT);
+  });
+
+  it('should successfully transform simple valid schema', async () => {
+    const inputSchema = `
+      type CoffeeQueue @model {
+        id: ID!
+        orderNumber: Int! @serial
+        name: String
+      }
+    `;
+    const out = testTransform({
+      schema: inputSchema,
+      transformers: [new ModelTransformer(), new SequenceTransformer()],
+    });
+    expect(out).toBeDefined();
+    expect(out.schema).toMatchSnapshot();
+
+    const schema = parse(out.schema);
+    validateModelSchema(schema);
   });
 });
