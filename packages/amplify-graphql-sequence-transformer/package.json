@@ -1,13 +1,18 @@
 {
-  "name": "amplify-graphql-sequence-transformer",
+  "name": "@aws-amplify/graphql-sequence-transformer",
   "version": "1.0.0",
   "main": "lib/index.js",
-  "repository": "https://github.com/aws-amplify/amplify-category-api.git",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aws-amplify/amplify-category-api.git",
+    "directory": "packages/amplify-graphql-sequence-transformer"
+  },
   "author": "Amazon Web Services",
   "license": "Apache-2.0",
   "private": false,
   "scripts": {
     "build": "tsc",
+    "ss": "jest --update-snapshot",
     "watch": "tsc -w",
     "clean": "rimraf ./lib",
     "test": "jest",
