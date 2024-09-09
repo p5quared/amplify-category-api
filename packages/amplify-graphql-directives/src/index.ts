@@ -1,5 +1,5 @@
 export * from './directives';
-import type { Directive } from './directives';
+import { Directive, SequenceDirective } from './directives';
 import {
   AuthDirective,
   AuthDirectiveV1,
@@ -53,6 +53,7 @@ export const V2Directives: readonly Directive[] = [
   AuthDirective,
   BelongsToDirective,
   DefaultDirective,
+  SequenceDirective,
   DeprecatedDirective,
   ConversationDirective,
   FunctionDirective,
