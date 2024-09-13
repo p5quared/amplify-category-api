@@ -1,8 +1,7 @@
 import { ModelTransformer } from '@aws-amplify/graphql-model-transformer';
 import { mockSqlDataSourceStrategy, testTransform } from '@aws-amplify/graphql-transformer-test-utils';
 import { parse } from 'graphql';
-import { SequenceTransformer } from '../graphql-sequence-transformer';
-import { ERR_NOT_INT, ERR_NOT_MODEL, ERR_NOT_POSTGRES } from '../err';
+import { SequenceTransformer, ERR_NOT_INT, ERR_NOT_MODEL, ERR_NOT_POSTGRES, ERR_ARGC } from '../graphql-sequence-transformer';
 import { constructDataSourceStrategies, POSTGRES_DB_TYPE, validateModelSchema } from '@aws-amplify/graphql-transformer-core';
 import { PrimaryKeyTransformer } from '@aws-amplify/graphql-index-transformer';
 

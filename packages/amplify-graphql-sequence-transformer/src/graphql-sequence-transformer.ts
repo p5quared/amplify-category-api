@@ -1,5 +1,4 @@
 import { SequenceDirectiveConfiguration } from './types';
-
 import {
   DirectiveWrapper,
   generateGetArgumentsInput,
@@ -13,9 +12,13 @@ import {
   TransformerTransformSchemaStepContextProvider,
 } from '@aws-amplify/graphql-transformer-interfaces';
 import { SequenceDirective } from '@aws-amplify/graphql-directives';
-import { DirectiveNode, FieldDefinitionNode, InterfaceTypeDefinitionNode, Kind, ObjectTypeDefinitionNode } from 'graphql';
+import { DirectiveNode, FieldDefinitionNode, InterfaceTypeDefinitionNode, ObjectTypeDefinitionNode } from 'graphql';
 import { getBaseType, ModelResourceIDs } from 'graphql-transformer-common';
-import { ERR_ARGC, ERR_NOT_INT, ERR_NOT_MODEL, ERR_NOT_POSTGRES } from './err';
+
+export const ERR_NOT_MODEL = 'The @sequence directive may only be added to object definitions annotated with @model.';
+export const ERR_NOT_INT = 'The @sequence directive may only be applied to integer fields';
+export const ERR_NOT_POSTGRES = 'The @sequence directive may only be applied to Postgres datasources';
+export const ERR_ARGC = 'The @sequence directive does not take any arguments';
 
 const validateModelDirective = (config: SequenceDirectiveConfiguration): void => {
   const modelDirective = config.object.directives!.find((dir) => dir.name.value === 'model');
@@ -24,10 +27,6 @@ const validateModelDirective = (config: SequenceDirectiveConfiguration): void =>
   }
 };
 
-//const validateDirectiveArguments = (directive: DirectiveNode): void => {
-//  if (directive.arguments!.length > 0) throw new InvalidDirectiveError(ERR_ARGC);
-//};
-
 const validateFieldType = (config: SequenceDirectiveConfiguration): void => {
   const baseTypeName = getBaseType(config.field.type);
   if (baseTypeName !== 'Int') {
@@ -35,14 +34,17 @@ const validateFieldType = (config: SequenceDirectiveConfiguration): void => {
   }
 };
 
+const validateDatasourceType = (ctx: TransformerSchemaVisitStepContextProvider, config: SequenceDirectiveConfiguration): void => {
+  const isPostgres = isPostgresModel(ctx, config.object.name.value);
+  if (!isPostgres) {
+    throw new InvalidDirectiveError(ERR_NOT_POSTGRES);
+  }
+};
+
 const validate = (ctx: TransformerSchemaVisitStepContextProvider, config: SequenceDirectiveConfiguration): void => {
-  //validateModelDirective(config);
-  //validateFieldType(config);
-  //validateDirectiveArguments(config.directive);
-  //const isPostgres = isPostgresModel(ctx, config.object.name.value);
-  //if (!isPostgres) {
-  //  throw new InvalidDirectiveError(ERR_NOT_POSTGRES);
-  //}
+  validateModelDirective(config);
+  validateFieldType(config);
+  validateDatasourceType(ctx, config);
 };
 
 export class SequenceTransformer extends TransformerPluginBase {
