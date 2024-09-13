@@ -4,12 +4,14 @@ import { Output } from 'aws-sdk/clients/cloudformation';
 import { resolveTestRegion } from '../testSetup';
 import { default as S3 } from 'aws-sdk/clients/s3';
 import { default as moment } from 'moment';
-import { testTransform } from '@aws-amplify/graphql-transformer-test-utils';
+import { mockSqlDataSourceStrategy, testTransform } from '@aws-amplify/graphql-transformer-test-utils';
 import { ModelTransformer } from '@aws-amplify/graphql-model-transformer';
-import { SequenceTransformer } from '@aws-amplify/sequence-transformer';
+import { SequenceTransformer } from '@aws-amplify/graphql-sequence-transformer';
 import { cleanupStackAfterTest, deploy } from '../deployNestedStacks';
 import { ResourceConstants } from 'graphql-transformer-common';
 import { GraphQLClient } from '../GraphQLClient';
+import { constructDataSourceStrategies, POSTGRES_DB_TYPE } from '@aws-amplify/graphql-transformer-core';
+import { PrimaryKeyTransformer } from '@aws-amplify/graphql-index-transformer';
 
 const region = resolveTestRegion();
 jest.setTimeout(2000000);
@@ -23,7 +25,7 @@ const BUCKET_NAME = `appsync-sequence-transformer-test-bucket-${BUILD_TIMESTAMP}
 const LOCAL_FS_BUILD_DIR = '/tmp/sequence_transformer_tests/';
 const S3_ROOT_DIR_KEY = 'deployments';
 
-let GRAPHQL_CLIENT = undefined;
+let GRAPHQL_CLIENT!: GraphQLClient;
 
 function outputValueSelector(key: string) {
   return (outputs: Output[]) => {
@@ -36,7 +38,7 @@ beforeAll(async () => {
   const validSchema = `
     type CoffeeWaiter @model {
       id: ID!
-      orderNumber: Int! @sequence
+      orderNumber: Int @sequence
       name: String
     }
   `;
@@ -47,13 +49,18 @@ beforeAll(async () => {
     console.warn(`Could not create bucket: ${e}`);
   }
 
+  //const postgresStrategy = mockSqlDataSourceStrategy({dbType: POSTGRES_DB_TYPE})
+
   const out = testTransform({
     schema: validSchema,
     transformers: [new ModelTransformer(), new SequenceTransformer()],
+    //transformers: [new ModelTransformer(), new SequenceTransformer(), new PrimaryKeyTransformer()],
     transformParameters: {
       sandboxModeEnabled: true,
     },
+    //dataSourceStrategies: constructDataSourceStrategies(validSchema, postgresStrategy)
   });
+
   const finishedStack = await deploy(
     customS3Client,
     cf,
@@ -76,11 +83,19 @@ beforeAll(async () => {
 
   expect(apiKey).toBeDefined();
   expect(endpoint).toBeDefined();
-  GRAPHQL_CLIENT = new GraphQLClient(endpoint, { 'x-api-key': apiKey });
+  GRAPHQL_CLIENT = new GraphQLClient(endpoint!, { 'x-api-key': apiKey });
 });
 
 afterAll(async () => {
   await cleanupStackAfterTest(BUCKET_NAME, STACK_NAME, cf);
+});
+
+test('Sequence Directive', async () => {
+  await addToQueue();
+
+  const wantsCoffee = await listQueue();
+  expect(wantsCoffee.data).toBeDefined();
+  expect(wantsCoffee.data.listCoffeeWaiters.items).toHaveLength(1);
 });
 
 async function addToQueue() {
@@ -95,24 +110,12 @@ async function addToQueue() {
 
 async function listQueue() {
   return await GRAPHQL_CLIENT.query(
-    `query ListCoffeeWaiter {
-      listPosts {
+    `query ListCoffeeWaiters {
+      listCoffeeWaiters {
         items {
-          stringValue
-          intVal
-          floatValue
-          enumValue
-          booleanValue
-          awsURLValue
-          awsTimestampValue
-          awsTimeValue
-          awsPhoneValue
-          awsIPAddressValue2
-          awsJsonValue
-          awsIPAddressValue1
-          awsEmailValue
-          awsDateValue
-          awsDateTime
+          id
+          name
+          orderNumber
         }
       }
     }`,
