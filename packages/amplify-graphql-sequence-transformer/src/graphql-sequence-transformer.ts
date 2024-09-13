@@ -24,9 +24,9 @@ const validateModelDirective = (config: SequenceDirectiveConfiguration): void =>
   }
 };
 
-const validateDirectiveArguments = (directive: DirectiveNode): void => {
-  if (directive.arguments!.length > 0) throw new InvalidDirectiveError(ERR_ARGC);
-};
+//const validateDirectiveArguments = (directive: DirectiveNode): void => {
+//  if (directive.arguments!.length > 0) throw new InvalidDirectiveError(ERR_ARGC);
+//};
 
 const validateFieldType = (config: SequenceDirectiveConfiguration): void => {
   const baseTypeName = getBaseType(config.field.type);
@@ -36,14 +36,13 @@ const validateFieldType = (config: SequenceDirectiveConfiguration): void => {
 };
 
 const validate = (ctx: TransformerSchemaVisitStepContextProvider, config: SequenceDirectiveConfiguration): void => {
-  validateModelDirective(config);
-  validateFieldType(config);
-  validateDirectiveArguments(config.directive);
-
-  const isPostgres = isPostgresModel(ctx, config.object.name.value);
-  if (!isPostgres) {
-    throw new InvalidDirectiveError(ERR_NOT_POSTGRES);
-  }
+  //validateModelDirective(config);
+  //validateFieldType(config);
+  //validateDirectiveArguments(config.directive);
+  //const isPostgres = isPostgresModel(ctx, config.object.name.value);
+  //if (!isPostgres) {
+  //  throw new InvalidDirectiveError(ERR_NOT_POSTGRES);
+  //}
 };
 
 export class SequenceTransformer extends TransformerPluginBase {
@@ -81,9 +80,11 @@ export class SequenceTransformer extends TransformerPluginBase {
     for (const typeName of this.directiveMap.keys()) {
       const name = ModelResourceIDs.ModelCreateInputObjectName(typeName);
       for (const config of this.directiveMap.get(typeName)!) {
-        const input = InputObjectDefinitionWrapper.fromObject(name, config.object, ctx.inputDocument);
-        const fieldWrapper = input.fields.find((f) => f.name === config.field.name.value);
-        fieldWrapper?.makeNullable();
+        const inputObject = InputObjectDefinitionWrapper.fromObject(name, config.object, ctx.inputDocument);
+        const appliedField = inputObject.fields.find((f) => f.name === config.field.name.value);
+        appliedField!.makeNullable();
+
+        ctx.output.updateInput(inputObject.serialize());
       }
     }
   };

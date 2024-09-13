@@ -3,7 +3,7 @@ import { mockSqlDataSourceStrategy, testTransform } from '@aws-amplify/graphql-t
 import { parse } from 'graphql';
 import { SequenceTransformer } from '../graphql-sequence-transformer';
 import { ERR_NOT_INT, ERR_NOT_MODEL, ERR_NOT_POSTGRES } from '../err';
-import { constructDataSourceStrategies, validateModelSchema } from '@aws-amplify/graphql-transformer-core';
+import { constructDataSourceStrategies, POSTGRES_DB_TYPE, validateModelSchema } from '@aws-amplify/graphql-transformer-core';
 import { PrimaryKeyTransformer } from '@aws-amplify/graphql-index-transformer';
 
 describe('SequenceTransformer:', () => {
@@ -67,21 +67,24 @@ describe('SequenceTransformer:', () => {
   });
 
   it('should successfully transform simple valid schema', async () => {
+    const postgresStrategy = mockSqlDataSourceStrategy({ dbType: POSTGRES_DB_TYPE });
+
     const inputSchema = `
       type CoffeeQueue @model {
-        id: ID!
-        orderNumber: Int! @serial
+        id: ID! @primaryKey
+        orderNumber: Int! @sequence
         name: String
       }
     `;
     const out = testTransform({
       schema: inputSchema,
-      transformers: [new ModelTransformer(), new SequenceTransformer()],
+      transformers: [new ModelTransformer(), new SequenceTransformer(), new PrimaryKeyTransformer()],
+      dataSourceStrategies: constructDataSourceStrategies(inputSchema, postgresStrategy),
     });
     expect(out).toBeDefined();
-    // expect(out.schema).toMatchSnapshot();
+    expect(out.schema).toMatchSnapshot();
 
-    // const schema = parse(out.schema);
-    // validateModelSchema(schema);
+    const schema = parse(out.schema);
+    validateModelSchema(schema);
   });
 });
